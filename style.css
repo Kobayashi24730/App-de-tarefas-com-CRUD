@@ -1,0 +1,14 @@
+body{
+  font-family: arial, Sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.form{
+  width: 400px;
+  border: 1px solid gray;
+  padding: 10px;
+}
+.form input{
+  width: 90%;
+}
