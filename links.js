@@ -1,5 +1,4 @@
-const apiUrl = 'http://localhost:5000/tasks';
-
+const apiUrl = 'https://app-de-tarefas-com-crud.onrender.com/tasks';
 async function loadTasks() {
   const res = await fetch(apiUrl);
   const tasks = await res.json();
