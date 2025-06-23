@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-import os  # Necessário para pegar variáveis de ambiente
+import os 
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# URL do banco PostgreSQL (Render)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -60,6 +59,6 @@ def delete_task(task_id):
     db.session.commit()
     return jsonify({"message": "Tarefa excluída"}), 200
 
-# Início apenas para execução local (não afeta o Gunicorn no Render)
+# Início apenas para execução local
 if __name__ == "__main__":
     app.run()
