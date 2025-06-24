@@ -9,7 +9,7 @@ CORS(app)
 # URL do banco de dados
 database_url = os.environ.get("DATABASE_URL")
 if not database_url:
-    database_url = "sqlite:///tasks.db" 
+    database_url = "sqlite:///tasks.db"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -17,6 +17,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 class Task(db.Model):
+    __tablename__ = 'tasks'  # <- Adicionado para funcionar corretamente no PostgreSQL
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     done = db.Column(db.Boolean, default=False)
