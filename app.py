@@ -6,7 +6,7 @@ from flask_cors import CORS
 import os  
 
 app = Flask(__name__)  
-CORS(app)  
+CORS(app, resources={r"/*": {"origins": "*"}})  
 
 database_url = os.environ.get("DATABASE_URL")  
 if not database_url:  
