@@ -36,6 +36,12 @@ class Task(db.Model):
     complete = db.Column(db.Boolean, default=False)  
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False) 
 
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    return response
+    
 @app.route("/register", methods=["POST"]) 
 def register(): 
     data = request.get_json()  
