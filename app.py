@@ -6,8 +6,7 @@ from flask_cors import CORS
 import os  
 
 app = Flask(__name__)  
-CORS(app, resources={r"/*": {"origins": "https://kobayashi24730.github.io"}})
-
+CORS(app)
 database_url = os.environ.get("DATABASE_URL")
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -137,5 +136,4 @@ with app.app_context():
     db.create_all()  
 
 if __name__ == "__main__":  
-    pass
-    #app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
