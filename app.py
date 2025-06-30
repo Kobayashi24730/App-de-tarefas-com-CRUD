@@ -6,10 +6,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Pega a URL do banco no ambiente (Render define variável de ambiente DATABASE_URL)
 database_url = os.environ.get("DATABASE_URL")
-
-# Render pode enviar URL com prefixo postgres://, ajusta para postgresql:// para SQLAlchemy
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -18,7 +15,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Modelo da tabela Task
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
@@ -26,6 +22,10 @@ class Task(db.Model):
 
     def to_dict(self):
         return {"id": self.id, "title": self.title, "done": self.done}
+
+# Cria as tabelas ao iniciar a aplicação (pode remover depois da primeira vez)
+with app.app_context():
+    db.create_all()
 
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
@@ -61,6 +61,4 @@ def delete_task(id):
     return jsonify({"message": "Task deleted"})
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
