@@ -15,13 +15,35 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# Tabela associativa Task-Tag
+task_tags = db.Table(
+    "task_tags",
+    db.Column("task_id", db.Integer, db.ForeignKey("task.id"), primary_key=True),
+    db.Column("tag_id", db.Integer, db.ForeignKey("tag.id"), primary_key=True)
+)
+
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
     done = db.Column(db.Boolean, default=False)
+    complete = db.Column(db.Boolean, default=False)
+    tags = db.relationship("Tag", secondary=task_tags, backref=db.backref("tasks", lazy="dynamic"))
 
     def to_dict(self):
-        return {"id": self.id, "title": self.title, "done": self.done}
+        return {
+            "id": self.id,
+            "title": self.title,
+            "done": self.done,
+            "complete": self.complete,
+            "tags": [tag.to_dict() for tag in self.tags]
+        }
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "name": self.name}
 
 with app.app_context():
     db.create_all()
@@ -35,10 +57,19 @@ def get_tasks():
 def add_task():
     data = request.json
     title = data.get("title")
+    tag_names = data.get("tags", [])
     if not title:
         return jsonify({"error": "Title is required"}), 400
 
-    task = Task(title=title)
+    tags = []
+    for name in tag_names:
+        tag = Tag.query.filter_by(name=name).first()
+        if not tag:
+            tag = Tag(name=name)
+            db.session.add(tag)
+        tags.append(tag)
+
+    task = Task(title=title, tags=tags)
     db.session.add(task)
     db.session.commit()
     return jsonify(task.to_dict()), 201
@@ -49,6 +80,14 @@ def update_task(id):
     data = request.json
     task.title = data.get("title", task.title)
     task.done = data.get("done", task.done)
+    db.session.commit()
+    return jsonify(task.to_dict())
+
+@app.route("/complete/<int:id>", methods=["PUT"])
+def complete_task(id):
+    task = Task.query.get_or_404(id)
+    data = request.json
+    task.complete = data.get("complete", task.complete)
     db.session.commit()
     return jsonify(task.to_dict())
 
