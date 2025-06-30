@@ -1,5 +1,3 @@
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity  
-from werkzeug.security import generate_password_hash, check_password_hash  
 from flask import Flask, request, jsonify  
 from flask_sqlalchemy import SQLAlchemy  
 from flask_cors import CORS  
@@ -16,9 +14,7 @@ if not database_url:
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  
-app.config["JWT_SECRET_KEY"] = "991652"  
 
-jwt = JWTManager(app)  
 db = SQLAlchemy(app)  
 
 class User(db.Model):  
@@ -40,57 +36,27 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     return response
-    
-@app.route("/register", methods=["POST"]) 
-def register(): 
-    data = request.get_json()  
-    username = data.get('username')  
-    password = data.get('password')  
 
-    if User.query.filter_by(username=username).first():  
-        return jsonify({"msg": "Usuário já existe."}), 409  
-    hashed_password = generate_password_hash(password)  
-    new_user = User(username=username, password=hashed_password)  
-    db.session.add(new_user)  
-    db.session.commit()  
-    return jsonify({"msg": "Usuário registrado!"}), 201
-
-@app.route("/login", methods=["POST"])  
-def login():  
-    data = request.get_json()  
-    username = data.get('username') 
-    password = data.get('password')  
-
-    user = User.query.filter_by(username=username).first()  
-
-    if user and check_password_hash(user.password, password):  
-        token = create_access_token(identity=user.id)  
-        return jsonify(access_token=token), 200  
-
-    return jsonify({"msg": "Credenciais inválidas"}), 401  
-
+# Lista todas as tarefas (sem autenticação)
 @app.route("/tasks", methods=["GET"])  
-@jwt_required() 
 def list_tasks():  
-    user_id = get_jwt_identity()  
-    tasks = Task.query.filter_by(user_id=user_id).all()
+    tasks = Task.query.all()
     return jsonify([  
-        {"id": task.id, "title": task.title, "done": task.done, "complete": task.complete}  
+        {"id": task.id, "title": task.title, "done": task.done, "complete": task.complete, "user_id": task.user_id}  
         for task in tasks  
     ])  
 
+# Cria nova tarefa (sem autenticação)
 @app.route("/tasks", methods=["POST"])  
-@jwt_required()  
 def create_task():  
     data = request.get_json()  
-    user_id = get_jwt_identity()  
-    new_task = Task(title=data.get("title", ""), user_id=user_id)  
+    new_task = Task(title=data.get("title", ""), user_id=data.get("user_id", 0))  
     db.session.add(new_task)  
     db.session.commit()  
     return jsonify({"id": new_task.id, "title": new_task.title, "done": new_task.done, "complete": new_task.complete}), 201  
 
+# Atualiza tarefa (sem autenticação)
 @app.route("/tasks/<int:task_id>", methods=["PUT"])  
-@jwt_required()  
 def update_task(task_id):  
     task = Task.query.get(task_id)  
     if not task:  
@@ -101,8 +67,8 @@ def update_task(task_id):
     db.session.commit()  
     return jsonify({"id": task.id, "title": task.title, "done": task.done, "complete": task.complete})  
 
+# Marca tarefa como completa (sem autenticação)
 @app.route("/complete/<int:task_id>", methods=["PUT"])  
-@jwt_required()  
 def complete_task(task_id):  
     task = Task.query.get(task_id)  
     if not task:  
@@ -112,8 +78,8 @@ def complete_task(task_id):
     db.session.commit()  
     return jsonify({"id": task.id, "title": task.title, "complete": task.complete})  
 
+# Busca tarefas por título (sem autenticação)
 @app.route("/tasks/search", methods=["GET"])  
-@jwt_required()  
 def search_tasks():  
     query = request.args.get("q", "").lower()  
     results = Task.query.filter(Task.title.ilike(f"%{query}%")).all()  
@@ -122,8 +88,8 @@ def search_tasks():
         for task in results  
     ])  
 
+# Deleta tarefa (sem autenticação)
 @app.route("/tasks/<int:task_id>", methods=["DELETE"])  
-@jwt_required() 
 def delete_task(task_id):  
     task = Task.query.get(task_id)  
     if not task:  
