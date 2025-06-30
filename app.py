@@ -5,6 +5,7 @@ import os
 
 app = Flask(__name__)  
 CORS(app)
+
 database_url = os.environ.get("DATABASE_URL")
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -37,7 +38,6 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     return response
 
-# Lista todas as tarefas (sem autenticação)
 @app.route("/tasks", methods=["GET"])  
 def list_tasks():  
     tasks = Task.query.all()
@@ -46,39 +46,58 @@ def list_tasks():
         for task in tasks  
     ])  
 
-# Cria nova tarefa (sem autenticação)
 @app.route("/tasks", methods=["POST"])  
 def create_task():  
     data = request.get_json()  
-    new_task = Task(title=data.get("title", ""), user_id=data.get("user_id", 0))  
+
+    user_id = data.get("user_id")
+    title = data.get("title", "").strip()
+
+    if not user_id:
+        return jsonify({"error": "O campo 'user_id' é obrigatório."}), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": f"Usuário com id {user_id} não encontrado."}), 404
+
+    if not title:
+        return jsonify({"error": "O título da tarefa não pode estar vazio."}), 400
+
+    new_task = Task(title=title, user_id=user_id)  
     db.session.add(new_task)  
     db.session.commit()  
     return jsonify({"id": new_task.id, "title": new_task.title, "done": new_task.done, "complete": new_task.complete}), 201  
 
-# Atualiza tarefa (sem autenticação)
 @app.route("/tasks/<int:task_id>", methods=["PUT"])  
 def update_task(task_id):  
     task = Task.query.get(task_id)  
     if not task:  
         return jsonify({"error": "Tarefa não encontrada"}), 404  
+
     data = request.get_json()  
-    task.title = data.get("title", task.title)  
-    task.done = data.get("done", task.done)  
+
+    title = data.get("title", task.title).strip()
+    done = data.get("done", task.done)
+
+    if not title:
+        return jsonify({"error": "O título da tarefa não pode estar vazio."}), 400
+
+    task.title = title  
+    task.done = done  
     db.session.commit()  
     return jsonify({"id": task.id, "title": task.title, "done": task.done, "complete": task.complete})  
 
-# Marca tarefa como completa (sem autenticação)
 @app.route("/complete/<int:task_id>", methods=["PUT"])  
 def complete_task(task_id):  
     task = Task.query.get(task_id)  
     if not task:  
         return jsonify({"error": "Tarefa não encontrada"}), 404  
+
     data = request.get_json()  
     task.complete = data.get("complete", task.complete)  
     db.session.commit()  
     return jsonify({"id": task.id, "title": task.title, "complete": task.complete})  
 
-# Busca tarefas por título (sem autenticação)
 @app.route("/tasks/search", methods=["GET"])  
 def search_tasks():  
     query = request.args.get("q", "").lower()  
@@ -88,7 +107,6 @@ def search_tasks():
         for task in results  
     ])  
 
-# Deleta tarefa (sem autenticação)
 @app.route("/tasks/<int:task_id>", methods=["DELETE"])  
 def delete_task(task_id):  
     task = Task.query.get(task_id)  
