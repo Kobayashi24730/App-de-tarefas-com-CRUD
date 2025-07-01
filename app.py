@@ -48,6 +48,22 @@ class Tag(db.Model):
 with app.app_context():
     db.create_all()
 
+@app.route("/tasks/by_tag/<tag_name>", methods=["GET"])
+def get_tasks_by_tag(tag_name):
+    tag = Tag.query.filter_by(name=tag_name).first()
+    if not tag:
+        return jsonify([])  
+    return jsonify([task.to_dict() for task in tag.tasks])
+
+@app.route("/tasks/search", methods=["GET"])
+def search_tasks():
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify([])
+        
+    tasks = Task.query.filter(Task.title.ilike(f"%{query}%")).all()
+    return jsonify([task.to_dict() for task in tasks])
+    
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
     tasks = Task.query.all()
